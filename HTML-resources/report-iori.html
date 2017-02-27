@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<body style="font-family: Arial; font-size: 12px;">
+<body style="font-family: Arial; font-size: 14px;">
 
 <h1>Practical Machine Learning - Final Assigment</h1>
 <h3>Goal of the project</h3>
@@ -8,7 +8,7 @@ The goal will be to use data from accelerometers on the belt, forearm, arm, and 
 <h3>Loading and cleaning of data</h3>
 First of all, we load the data of the training set and we preliminarly inspect it to check the number of observation (row) and the predictors available (comulmns): 
 <pre>
-<div style="font-size: 10px; background-color: #e4e4e4; margin: 10px; padding: 10px; border: 1px solid grey;"> 
+<div style="font-size: 13px; background-color: #e4e4e4; margin: 10px; padding: 10px; border: 1px solid grey;"> 
 myData = read.csv("pml-training.csv",header = TRUE,na.strings = c("NA","NaN","#DIV/0!")); 
 summary(myData)
 </div>
@@ -16,7 +16,7 @@ summary(myData)
 The data frame contains 19622 observation and 160 predictors, but many values are missing. In order to reduce the dimension of the problem, even if many prediction model can still work, we remove the columns where some values are missing.
 Since the number of observation is big, we can use cross-validation and divide the training set in two subset, the first one will be used as the actual training set and the second one as the testing set to validate the prediction models. 
 <pre>
-<div style="font-size: 10px; background-color: #e4e4e4; margin: 10px; padding: 10px; border: 1px solid grey;"> 
+<div style="font-size: 13px; background-color: #e4e4e4; margin: 10px; padding: 10px; border: 1px solid grey;"> 
 inTrain <- caret::createDataPartition(y = myData$classe, p = 0.6, list = FALSE)
 training <- myData[inTrain, ];
 testing <- myData[-inTrain, ];
@@ -24,7 +24,7 @@ testing <- myData[-inTrain, ];
 </pre>
 In this way, the training set contains 11776 observation and the number of predictors has been reduced to 60. By taking a look on the names and contents of the columns we identify the following variables:
 <pre>
-<div style="font-size: 10px; background-color: #e4e4e4; margin: 10px; padding: 10px; border: 1px solid grey;"> 
+<div style="font-size: 13px; background-color: #e4e4e4; margin: 10px; padding: 10px; border: 1px solid grey;"> 
 names(training)[1:7] <br>
  [1] "X"                    "user_name"            "raw_timestamp_part_1" 
  [4] "raw_timestamp_part_2" "cvtd_timestamp"       "new_window"             
@@ -38,7 +38,7 @@ To improve our preliminary analysis, we try to group some variables in order to 
 <h3>Preprocessing</h3>
 We analyse the correlation among the columns containing numeric values. Here below some of the most correlated columns:
 <pre>
-<div style="font-size: 10px; background-color: #e4e4e4; margin: 10px; padding: 10px; border: 1px solid grey;"> 
+<div style="font-size: 13px; background-color: #e4e4e4; margin: 10px; padding: 10px; border: 1px solid grey;"> 
   total_accel_belt    roll_belt  0.9813511 
   accel_belt_y        roll_belt  0.9265300 
   accel_belt_z        roll_belt -0.9920407 
@@ -47,7 +47,7 @@ We analyse the correlation among the columns containing numeric values. Here bel
 </pre>
 Since some of those columns are strongly correlated we can reduce the number of predictors by preprocessing using PCA and extracting the components that 'explain' the 95% of the variability.
 <pre>
-<div style="font-size: 10px; background-color: #e4e4e4; margin: 10px; padding: 10px; border: 1px solid grey;"> 
+<div style="font-size: 13px; background-color: #e4e4e4; margin: 10px; padding: 10px; border: 1px solid grey;"> 
 threshVal <- 0.95;
 preProcPCA <- preProcess(training[,1:ncol(training)-1], method = "pca", thresh = threshVal )
 </div>
@@ -62,7 +62,7 @@ We now use the <b>caret</b> and <b>randomForest</b> packages to train three diff
 <li> Simple Decision Tree Model
 </ul>
 <pre>
-<div style="font-size: 10px; background-color: #e4e4e4; margin: 10px; padding: 10px; border: 1px solid grey;"> 
+<div style="font-size: 13px; background-color: #e4e4e4; margin: 10px; padding: 10px; border: 1px solid grey;"> 
 library(caret)
 library(randomForest)
 fit1<-randomForest(training.classe~.,data=trainingPP);
@@ -79,7 +79,7 @@ As final step, we test the models on the testing set. We expect to get a similar
 The following are the result we get for the confusion matrices obtained:
 <h4>Random Forest</h4>
 <pre>
-<div style="font-size: 10px; background-color: #e4e4e4; margin: 10px; padding: 10px; border: 1px solid grey;"> 
+<div style="font-size: 13px; background-color: #e4e4e4; margin: 10px; padding: 10px; border: 1px solid grey;"> 
 Confusion Matrix and Statistics
 
           Reference
@@ -115,7 +115,7 @@ Balanced Accuracy      0.9911   0.9775   0.9715   0.9716   0.9870
 </pre>
 <h4>Linear discriminant analysis</h4>
 <pre>
-<div style="font-size: 10px; background-color: #e4e4e4; margin: 10px; padding: 10px; border: 1px solid grey;"> 
+<div style="font-size: 13px; background-color: #e4e4e4; margin: 10px; padding: 10px; border: 1px solid grey;"> 
 Confusion Matrix and Statistics
 
           Reference
@@ -151,7 +151,7 @@ Balanced Accuracy      0.7468  0.65319  0.69505  0.71955  0.70133
 </pre>
 <h4>Simple Decision Tree Model</h4>
 <pre>
-<div style="font-size: 10px; background-color: #e4e4e4; margin: 10px; padding: 10px; border: 1px solid grey;"> 
+<div style="font-size: 13px; background-color: #e4e4e4; margin: 10px; padding: 10px; border: 1px solid grey;"> 
 Confusion Matrix and Statistics
 
           Reference
