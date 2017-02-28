@@ -1,0 +1,156 @@
+# Practical Machine Learning - Final Assigment
+
+---
+title: "PML Project"
+author: "Iori Guido"
+date: "February 28, 2017"
+output: html_document
+---
+
+
+The goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants to predict which exercise has been performed among types "A", "B", "C", "D", "E".
+We will use the following packages:
+
+```r
+library(caret)
+library(gbm)
+library(randomForest)
+library(rpart.plot)
+```
+
+##Loading and cleaning data  
+
+First of all, we load the data of the training set and we preliminarly inspect it to check the number of observation (row) and the predictors available (comulmns).
+
+```r
+#some parameter to be used in the code
+threshVal <- 0.95;
+
+#set a seed for reproducibility
+set.seed(1423)
+
+#retrieve data
+myData = read.csv("pml-training.csv",header = TRUE,na.strings = c("NA","NaN","#DIV/0!"));
+```
+The data frame contains 19622 observation and 160 predictors, but many values are missing. In order to reduce the dimension of the problem, even if many prediction model can still work, we remove the columns where some values are missing.
+Since the number of observation is big, we can use cross-validation and divide the training set in two subset, the first one will be used as the actual training set and the second one as the testing set to validate the prediction models. 
+
+```r
+# create training and test sets
+inTrain <- caret::createDataPartition(y = myData$classe, p = 0.6, list = FALSE)
+
+# subset
+training <- myData[inTrain, ]
+testing <- myData[-inTrain, ]
+```
+
+We also remove columns considered not useful for our prediction models.
+
+```r
+#basic fitting
+set.seed(62433);
+
+#remove columns containing NA values in the training set (maybe wrong!..to be evaluated)
+naCol <- !( colSums(is.na(training))/nrow(training) > 0.95 );
+training <- training[,naCol];
+testing  <- testing[,naCol] 
+
+#remove timestamp, name and other textual useless columns
+#training <- training[ !grepl("time", names(training)) ]
+#testing <- testing[ !grepl("time", names(testing)) ]
+training <- training[8:ncol(training)]
+testing  <- testing[8:ncol(testing)]
+
+#extract numeric columns
+numCols <- sapply(training, is.numeric);
+
+
+```
+##Preprocessing
+
+
+We analyse the correlation among the columns containing numeric values.
+```r
+
+#compute correlation matrix among numeric columns and see which columns have strong correlation
+CM <- cor(training[numCols])
+diag(CM)<-0;
+zdf <- as.data.frame(as.table(CM))
+subset(zdf, abs(Freq) > 0.9)
+
+#some plot
+p1<-featurePlot(x=training[,c("roll_arm", "roll_dumbbell","roll_forearm")], y=training$classe,plot="pairs", cex=.5);
+p2<-featurePlot(x=training[,c("pitch_arm","pitch_dumbbell", "pitch_forearm")], y=training$classe,plot="pairs", cex=.5);
+p3<-featurePlot(x=training[,c("yaw_arm", "yaw_dumbbell", "yaw_forearm")], y=training$classe,plot="pairs", cex=.5);
+p4<-featurePlot(x=training[,c("total_accel_arm","total_accel_dumbbell","total_accel_forearm")], y=training$classe,plot="pairs", cex=.5);
+
+gridExtra::grid.arrange(p1, p2, p3, p4, ncol = 2, nrow = 2)
+```
+Since some of those columns are strongly correlated we can reduce the number of predictors by preprocessing using PCA and extracting the components that 'explain' the 95% of the variability.
+
+```r
+#PCA can reduce the number of variables
+preProcPCA <- preProcess(training[,1:ncol(training)-1], method = "pca", thresh = threshVal )
+
+trainingPP <- data.frame(predict( preProcPCA, training[,1:ncol(training)-1]),training$classe);
+testingPP  <- data.frame(predict( preProcPCA, testing[,1:ncol(testing)-1]),testing$classe);
+
+featurePlot(trainingPP[,1:4], y=trainingPP$training.classe,plot="pairs", auto.key = list(columns = 5));
+```
+
+## Prediction models
+
+We now use the caret and randomForest packages to train three different prediction models:
+
+* Random forest
+* Linear discriminant analysis
+* Simple Decision Tree Model
+
+
+
+```r
+fit1<-randomForest(training.classe~.,data=trainingPP);
+fit2<-train(training.classe~.,data=trainingPP,method="lda");
+fit3<-train(training.classe~.,data=trainingPP,method="rpart");
+
+rpart.plot(fit3$finalModel)
+varImpPlot(fit1,type=2)
+
+
+pred1tr <- predict(fit1, trainingPP);
+pred2tr <- predict(fit2, trainingPP);
+pred3tr <- predict(fit3, trainingPP);
+
+cm1p <- confusionMatrix(pred1tr, training$classe);
+cm2p <- confusionMatrix(pred2tr, training$classe);
+cm3p <- confusionMatrix(pred3tr, training$classe);
+
+
+print(cm1p);
+print(cm2p);
+print(cm3p);
+
+```
+We compute the confusion matrix for the three models and we get the following value for the accuracy: 1 for Random Forest, 0.5255605  for LDA, and 0.3755944  for the simple tree.
+Given these results two remarks can be done. The first one concerns the RF model, where the accuracy is 1. This does not means the the model is perfect, probably this is an overfitting  effect. We will evaluate on the testing set how much the overfitting has impacted on the performances of the RF model. The second remarks concerns the model based on a simple tree decision. Accuracy is very bad and if we plot the decision tree of the final model (see picture below) we can notice that only three type of <b>class</b> can be predicted: "B" and "C" are not possible output of the prediction model, so for these classes we will have only errors. <br> From the result so far, the RF model seems the best, but as previously explained, we need to evaluate if it is affected by a strong overfitting.
+
+As final step, we test the models on the testing set. We expect to get a similar or smaller accuracy when testing on a set different from the one used to train the model.
+
+```r
+
+pred1 <- predict(fit1, testingPP);
+pred2 <- predict(fit2, testingPP);
+pred3 <- predict(fit3, testingPP);
+
+cm1 <- confusionMatrix(pred1, testing$classe);
+cm2 <- confusionMatrix(pred2, testing$classe);
+cm3 <- confusionMatrix(pred3, testing$classe);
+
+print(cm1);
+print(cm2);
+print(cm3);
+
+```
+
+The accuracy values obtained on the testing set confirm the performances on the training set, for this reason in order to predict classe we will use the random forest model. For this model, the accuracy on the testing is 0.9698, smaller than the value on the training set, but we can affirm that the model is affected by a small overfitting of the set of observation where it has been built.
+Since only the RF model gave us a good prediction result, we do not try to further improve the model by a combination of the 3 models we analysed.  
